@@ -1,0 +1,12 @@
+Django==1.4.2
+Scrapy==0.16.2
+South==0.7.6
+Twisted==12.2.0
+argparse==1.2.1
+django-debug-toolbar==0.9.4
+django-grappelli==2.4.3
+lxml==3.0.1
+pyOpenSSL==0.13
+w3lib==1.2
+wsgiref==0.1.2
+zope.interface==4.0.2

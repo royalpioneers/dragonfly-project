@@ -16,9 +16,9 @@ NEWSPIDER_MODULE = 'dragonfly_scrapy.spiders'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'dragonfly_scrapy (+http://www.yourdomain.com)'
 
-ITEM_PIPELINES = [
-    'dragonfly_scrapy.pipelines.ProductPipeline',
-    ]
+#ITEM_PIPELINES = [
+#    'dragonfly_scrapy.pipelines.ProductPipeline',
+#    ]
 
 def setup_django_env(path):
     from django.core.management import setup_environ

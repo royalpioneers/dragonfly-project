@@ -5,7 +5,13 @@
 
 from scrapy.item import Item, Field
 from scrapy.contrib_exp.djangoitem import DjangoItem
-from aduanet.models import Product
+from aduanet.models import Country, Regime, Aduana
 
-class ProductItem(DjangoItem):
-    django_model = Product
+class CountryItem(DjangoItem):
+	django_model = Country
+
+class RegimeItem(DjangoItem):
+	django_model = Regime
+
+class AduanaItem(DjangoItem):
+	django_model = Aduana

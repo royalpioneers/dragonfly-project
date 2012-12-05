@@ -14,7 +14,7 @@ SPIDER_MODULES = ['dragonfly_scrapy.spiders']
 NEWSPIDER_MODULE = 'dragonfly_scrapy.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'dragonfly_scrapy (+http://www.yourdomain.com)'
+USER_AGENT = 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:17.0) Gecko/17.0 Firefox/17.0'
 
 #ITEM_PIPELINES = [
 #    'dragonfly_scrapy.pipelines.ProductPipeline',

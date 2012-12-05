@@ -25,3 +25,10 @@ class Aduana(models.Model):
 
    def __unicode__(self):
 		return "%s - %s" % (self.code, self.name)
+
+class Agent(models.Model):
+	code = models.CharField(max_length=10)
+	name = models.CharField(max_length=120)
+
+	def __unicode__(self):
+		return "%s - %s" % (self.code, self.name)

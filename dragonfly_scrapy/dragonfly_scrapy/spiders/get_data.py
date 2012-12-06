@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 from urllib import urlencode
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
@@ -19,8 +20,17 @@ class GetDataAduanet(BaseSpider):
     }
 
     def __init__(self, name=None, **kwargs):
-        self.CG_consulta = '4'
-        self.CG_regimen = '10'
+        self.CG_consulta = '4' #Parametro de la url inicial que nos envio Toni :P
+        self.CG_regimen = '10' #Importación
+
+        # Extracción de parametros: Año y Mes
+        try:
+            self.CG_anio = kwargs['year']
+            self.CG_mes = kwargs['month']
+        except KeyError:
+            print "***** Using for example: scrapy crawl %s -a year=2012 -a month=04" % self.name
+            sys.exit(0)
+
         super(GetDataAduanet, self).__init__(name=name, **kwargs)
 
 
@@ -29,6 +39,9 @@ class GetDataAduanet(BaseSpider):
         """
         #countries = CountryItem.django_model.objects.all()
         #aduanas = AduanaItem.django_model.objects.all()
+        hxs = HtmlXPathSelector(response)
+        cod_anio = hxs.select('//select[@name="CG_Ano"]/option[text()="%s"]' % self.CG_anio
+                ).select('@value').extract()[0]
 
         countries = CountryItem.django_model.objects.filter(code='CN')
         aduanas = AduanaItem.django_model.objects.filter(code='019')
@@ -39,8 +52,8 @@ class GetDataAduanet(BaseSpider):
             for aduana in aduanas:
                 formdata = {
                     'CG_Aduana': aduana.code,
-                    'CG_Ano': '20',
-                    'CG_Mes': '04',
+                    'CG_Ano': cod_anio,
+                    'CG_Mes': self.CG_mes,
                     'CG_Pais': country.code,
                     'CG_consulta': self.CG_consulta,
                     'CG_regimen': self.CG_regimen,
@@ -55,6 +68,7 @@ class GetDataAduanet(BaseSpider):
         return requests
 
     def agent_list(self, response):
+        # Creación de agentes y validación si existen.
         hxs = HtmlXPathSelector(response)
         js_params = hxs.select('//tr[@class="bg"]/td[1]/a/@href').extract()
         
@@ -79,6 +93,7 @@ class GetDataAduanet(BaseSpider):
         
 
     def dua_list(self, response):
+        # Crear la DUA y validar que la dua sea única
         hxs = HtmlXPathSelector(response)
         duas = hxs.select('//tr[@class="bg"]/td[3]/a/@href').extract()
         requests = []
@@ -105,16 +120,22 @@ class GetDataAduanet(BaseSpider):
         return requests
 
     def dua_report(self, response):
+        # Seleccionar la DUA y actualizar sus datos. Aqui se crean las demas entidades.
         hxs = HtmlXPathSelector(response)
         print hxs.select("/html/body/table[1]/tr[2]/td[2]/font/text()").extract()[0]
 
-    def dua_formatb(self, response):
+    def dua_container_list(self, response):
+        # Extraer listado de contenedores, crear contenedores y asociarlos a la DUA
         pass
 
-    def dua_container_list(self, response):
-        pass
+    def dua_formatb(self, response):
+        xpath_declaracion_valor = "/html/body/table/tr[2]/td/font/a/@href"
+        hxs = HtmlXPathSelector(response)
+        url_declaracion_valor = hxs.select(xpath_declaracion_valor).extract()[0]
+        return Request(url=self.domain + url_declaracion_valor, callback=self.dua_formatob_declaracion)
 
     def dua_formatob_declaracion(self, response):
+        # Extraer declarante, crear declarante y asociarlo a la dua
         pass
 
 

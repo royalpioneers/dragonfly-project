@@ -5,7 +5,10 @@ from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
 from scrapy.http import Request, FormRequest
 
-from dragonfly_scrapy.items import CountryItem, RegimeItem, AduanaItem
+from dragonfly_scrapy.items import CountryItem, RegimeItem, AduanaItem, \
+    AgentItem, ContainerItem, SupplierItem, PortItem, ImporterItem, \
+    DeclaranteItem, StatusItem, TransportItem, DuaItem, Hs, Item, HtsItem, \
+    ProductItem, DetalleDua
 
 class GetDataAduanet(BaseSpider):
     name = "abracadabra"
@@ -22,6 +25,7 @@ class GetDataAduanet(BaseSpider):
     def __init__(self, name=None, **kwargs):
         self.CG_consulta = '4' #Parametro de la url inicial que nos envio Toni :P
         self.CG_regimen = '10' #Importación
+        self.regime_object = RegimeItem.django_model.objects.get(code=self.CG_regimen)
 
         # Extracción de parametros: Año y Mes
         try:
@@ -63,19 +67,18 @@ class GetDataAduanet(BaseSpider):
                 requests.append(
                     FormRequest(url=self.urls['initial'],
                         formdata=formdata,
-                        callback=self.agent_list)
+                        callback=self.agent_list,
+                        meta={'aduana': aduana})
                     )
         return requests
 
     def agent_list(self, response):
-        # Creación de agentes y validación si existen.
         hxs = HtmlXPathSelector(response)
         js_params = hxs.select('//tr[@class="bg"]/td[1]/a/@href').extract()
-        
         requests = []
 
         for js_param in js_params:
-            param_list = js_param[js_param.find('("')+2: js_param.find('")')].split('","')
+            param_list = js_param[js_param.find('("')+2:js_param.find('")')].split('","')
             param = {
                 'CG_consulta': self.CG_consulta,
                 'CG_regimen': self.CG_regimen,
@@ -86,19 +89,50 @@ class GetDataAduanet(BaseSpider):
                 'CG_Pais': param_list[5],
                 'accion':  'buscarListadoDuas'
             }
+            # Creación del agente
+            agent_name = hxs.select(
+                """//tr[@class="bg" and td[1]/a[@href='%s']]/td[2]/text()""" % js_param
+                ).extract()[0]
+            agent, created = AgentItem.django_model.objects.get_or_create(code=param['CG_agente'],
+                  defaults={'name': agent_name})
 
+            # Creación de los requests
             url = self.urls['dua_list'] + urlencode(param)
-            requests.append(Request(url=url, callback=self.dua_list))
+            requests.append(Request(url=url, callback=self.dua_list, 
+                meta={'aduana': response.meta['aduana'], 'agent': agent}))
+
         return requests
         
 
     def dua_list(self, response):
         # Crear la DUA y validar que la dua sea única
         hxs = HtmlXPathSelector(response)
-        duas = hxs.select('//tr[@class="bg"]/td[3]/a/@href').extract()
+        duas = hxs.select('//tr[@class="bg"]')
+
         requests = []
         for dua in duas:
-            requests.append(Request(url=dua, callback=self.dua_detail))
+            # Creación de la DUA
+            code = "%(aduana)s-%(anio)s-%(regimen)s-%(ndeclaracion)s-00"
+            values_code = {
+                'aduana': dua.select('td[1]/text()').extract()[0],
+                'anio': dua.select('td[2]/text()').extract()[0],
+                'regimen': self.CG_regimen,
+                'ndeclaracion': dua.select('td[3]/a/text()').extract()[0],
+            }
+            dua_object, created = DuaItem.django_model.objects.get_or_create(
+                code=code%values_code, defaults={})
+            if created:
+                dua_object.regime = self.regime_object
+                dua_object.aduana = response.meta['aduana']
+                dua_object.agent = response.meta['agent']
+                dua_object.save()
+
+            # Creación de los requests
+            url_dua = dua.select('td[3]/a/@href').extract()[0]
+            meta_data = {'dua': dua_object}
+            requests.append(
+                Request(url=url_dua, callback=self.dua_detail, meta=meta_data)
+                )
         return requests
 
     def dua_detail(self, response):
@@ -113,16 +147,32 @@ class GetDataAduanet(BaseSpider):
         url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
 
         requests = [
-            Request(url=self.domain + url_dua_report, callback=self.dua_report),
-            Request(url=self.domain + url_dua_formatb, callback=self.dua_formatb),
-            Request(url=self.domain + url_dua_container_list, callback=self.dua_container_list),
+            Request(url=self.domain + url_dua_report, 
+                callback=self.dua_report, meta={'dua': response.meta['dua']}),
+            Request(url=self.domain + url_dua_formatb, 
+                callback=self.dua_formatb, meta={'dua': response.meta['dua']}),
+            Request(url=self.domain + url_dua_container_list, 
+                callback=self.dua_container_list, meta={'dua': response.meta['dua']}),
         ]
         return requests
 
     def dua_report(self, response):
         # Seleccionar la DUA y actualizar sus datos. Aqui se crean las demas entidades.
         hxs = HtmlXPathSelector(response)
-        print hxs.select("/html/body/table[1]/tr[2]/td[2]/font/text()").extract()[0]
+        dua = response.meta['dua']
+
+        # Creamos el Importador
+        importer_ruc = hxs.select('/html/body/table[1]/tr[6]/td[2]/font/text()'
+            ).extract()[0].split('-').pop()
+        importer_name = hxs.select('/html/body/table[1]/tr[6]/td[3]/font/text()').extract()[0]
+        importer_address = hxs.select('/html/body/table[1]/tr[6]/td[5]/font/text()').extract()[0]
+        importer, created = ImporterItem.django_model.objects.get_or_create(code=importer_ruc,
+            defaults={'name': importer_name, 'address': importer_address})
+        dua.importer = importer
+
+        #
+
+        dua.save()
 
     def dua_container_list(self, response):
         # Extraer listado de contenedores, crear contenedores y asociarlos a la DUA
@@ -136,6 +186,9 @@ class GetDataAduanet(BaseSpider):
 
     def dua_formatob_declaracion(self, response):
         # Extraer declarante, crear declarante y asociarlo a la dua
+        pass
+
+    def mock(self, response):
         pass
 
 

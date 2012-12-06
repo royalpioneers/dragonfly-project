@@ -7,7 +7,7 @@ from scrapy.item import Item, Field
 from scrapy.contrib_exp.djangoitem import DjangoItem
 from aduanet.models import Country, Regime, Aduana, Agent, Container, \
 Supplier, Port, Importer, Declarante, Status, Transport, Dua, \
-Dua, Hs, Hts, Product, DetalleDua
+Hs, Hts, Product, DetalleDua
 
 class CountryItem(DjangoItem):
 	django_model = Country

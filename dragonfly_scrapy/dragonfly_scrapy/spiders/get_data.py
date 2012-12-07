@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
+from datetime import datetime, date
+from decimal import Decimal
 from urllib import urlencode
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
@@ -48,7 +50,7 @@ class GetDataAduanet(BaseSpider):
                 ).select('@value').extract()[0]
 
         countries = CountryItem.django_model.objects.filter(code='CN')
-        aduanas = AduanaItem.django_model.objects.filter(code='019')
+        aduanas = AduanaItem.django_model.objects.filter(code='118')
 
         requests = []
 
@@ -142,9 +144,13 @@ class GetDataAduanet(BaseSpider):
         xpath_dua_formatb = "/html/body/center/a[4]/@href"
         xpath_dua_container_list = "/html/body/center/b/a/@href"
 
-        url_dua_report = hxs.select(xpath_dua_report).extract()[0]
-        url_dua_formatb = hxs.select(xpath_dua_formatb).extract()[0]
-        url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
+        try:
+            url_dua_report = hxs.select(xpath_dua_report).extract()[0]
+            url_dua_formatb = hxs.select(xpath_dua_formatb).extract()[0]
+            url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
+        except IndexError:
+            print response.meta['dua'].code
+            import pdb; pdb.set_trace()
 
         requests = [
             Request(url=self.domain + url_dua_report, 
@@ -170,13 +176,114 @@ class GetDataAduanet(BaseSpider):
             defaults={'name': importer_name, 'address': importer_address})
         dua.importer = importer
 
-        #
+        # Agregamos fecha de llegada a la dua
+        dua.fecha_llegada = datetime.strptime(
+            hxs.select('/html/body/table[1]/tr[11]/td[6]/font/text()').extract()[0],
+            "%d/%m/%Y"
+            ).date()
+
+        # Creamos y asociamos el status
+
+        # Creamos el puerto y lo asociamos
+        port_data = hxs.select('/html/body/table[2]/tr[9]/td[2]/font/text()').extract()[0]
+        port, created = PortItem.django_model.objects.get_or_create(
+            code=port_data.split('-')[0], defaults={'name':port_data.split('-')[1]})
+        dua.port = port
+
+        # Asignación del peso neto, cantidad de bultos, unidad comercial, etc
+        dua.total_peso_neto = Decimal(
+            hxs.select('/html/body/table[1]/tr[14]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.total_cant_bulto = Decimal(
+            hxs.select('/html/body/table[1]/tr[15]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.unid_comercial = Decimal(
+            hxs.select('/html/body/table[1]/tr[16]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.total_series = int(
+            hxs.select('/html/body/table[1]/tr[17]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.total_peso_bruto = Decimal(
+            hxs.select('/html/body/table[1]/tr[14]/td[4]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.total_unid_fisica = Decimal(
+            hxs.select('/html/body/table[1]/tr[15]/td[4]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.tipo_tratamiento = hxs.select('/html/body/table[1]/tr[17]/td[4]/font/text()').extract()[0]
+        dua.fob = Decimal(
+            hxs.select('/html/body/table[1]/tr[19]/td[3]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.flete = Decimal(
+            hxs.select('/html/body/table[1]/tr[20]/td[3]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.seguro = Decimal(
+            hxs.select('/html/body/table[1]/tr[21]/td[3]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.cif = Decimal(
+            hxs.select('/html/body/table[1]/tr[22]/td[3]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.ad_valorem = Decimal(
+            hxs.select('/html/body/table[1]/tr[25]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.derecho_especifico = Decimal(
+            hxs.select('/html/body/table[1]/tr[26]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.imp_select_consumo = Decimal(
+            hxs.select('/html/body/table[1]/tr[27]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.imp_promocion_municipal = Decimal(
+            hxs.select('/html/body/table[1]/tr[28]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.imp_general_venta = Decimal(
+            hxs.select('/html/body/table[1]/tr[29]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.derecho_antidumping = Decimal(
+            hxs.select('/html/body/table[1]/tr[30]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.tasa_servicio = Decimal(
+            hxs.select('/html/body/table[1]/tr[31]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.recargo_numeracion = Decimal(
+            hxs.select('/html/body/table[1]/tr[32]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.sobretasa_natural = Decimal(
+            hxs.select('/html/body/table[1]/tr[33]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+        dua.ultimo_dia_pago = datetime.strptime(
+            hxs.select('/html/body/table[1]/tr[35]/td[2]/font/text()').extract()[0],
+            "%d/%m/%Y"
+            ).date()
+        dua.fecha_cancelacion = datetime.strptime(
+            hxs.select('/html/body/table[1]/tr[35]/td[4]/font/text()').extract()[0],
+            "%d/%m/%Y"
+            ).date()
+        dua.fecha_numeracion = datetime.strptime(
+            hxs.select('/html/body/table[1]/tr[2]/td[4]/font/text()').extract()[0],
+            "%d/%m/%Y"
+            ).date()
+        dua.banco_cancelacion = hxs.select('/html/body/table[1]/tr[35]/td[6]/font/text()').extract()[0]
+        dua.liquidacion = Decimal(
+            hxs.select('/html/body/table[1]/tr[34]/td[2]/font/text()').extract()[0].replace(',', '')
+            )
+
+        # create products.
+        #products_xhs = 
+
 
         dua.save()
 
     def dua_container_list(self, response):
-        # Extraer listado de contenedores, crear contenedores y asociarlos a la DUA
-        pass
+        hxs = HtmlXPathSelector(response)
+        xpath_container = '/html/body/table[3]/tr[@class="bg"]'
+        dua = response.meta['dua']
+        for container_hxs in hxs.select(xpath_container):
+            container, created = ContainerItem.django_model.objects.get_or_create(
+                code=container_hxs.select('td[2]/text()').extract()[0]
+                )
+            if not dua.containers.filter(code=container.code).count():
+                dua.containers.add(container)
+                dua.save()
+
 
     def dua_formatb(self, response):
         xpath_declaracion_valor = "/html/body/table/tr[2]/td/font/a/@href"
@@ -187,9 +294,3 @@ class GetDataAduanet(BaseSpider):
     def dua_formatob_declaracion(self, response):
         # Extraer declarante, crear declarante y asociarlo a la dua
         pass
-
-    def mock(self, response):
-        pass
-
-
-        

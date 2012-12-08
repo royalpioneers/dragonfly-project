@@ -295,35 +295,35 @@ class GetDataAduanet(BaseSpider):
 
             elif line == 2:
                 detalle_dua.total_cant_bulto = Decimal(
-                    product_rows.select('td[2]/font/text()').extract()[0]
+                    product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.clase = product_rows.select(
                     'td[3]/font/text()').extract()[0]
                 detalle_dua.unid_fisicas = product_rows.select(
                     'td[4]/font/text()').extract()[0]
                 detalle_dua.peso_neto = Decimal(
-                    product_rows.select('td[5]/font/text()').extract()[0]
+                    product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.peso_bruto = Decimal(
-                    product_rows.select('td[6]/font/text()').extract()[0]
+                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.save()
 
             elif line == 3:
                 detalle_dua.flete = Decimal(
-                    product_rows.select('td[2]/font/text()').extract()[0]
+                    product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.seguro = Decimal(product_rows.select(
-                    'td[3]/font/text()').extract()[0]
+                    'td[3]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.ad_valorem = Decimal(product_rows.select(
-                    'td[4]/font/text()').extract()[0]
+                    'td[4]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.igv = Decimal(
-                    product_rows.select('td[5]/font/text()').extract()[0]
+                    product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.ipm = Decimal(
-                    product_rows.select('td[6]/font/text()').extract()[0]
+                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.save()
 

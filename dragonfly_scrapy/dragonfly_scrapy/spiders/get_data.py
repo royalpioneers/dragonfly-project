@@ -50,7 +50,7 @@ class GetDataAduanet(BaseSpider):
                 ).select('@value').extract()[0]
 
         countries = CountryItem.django_model.objects.filter(code='CN')
-        aduanas = AduanaItem.django_model.objects.filter(code='118')
+        aduanas = AduanaItem.django_model.objects.filter(code='019')
 
         requests = []
 
@@ -140,9 +140,9 @@ class GetDataAduanet(BaseSpider):
     def dua_detail(self, response):
         hxs = HtmlXPathSelector(response)
 
-        xpath_dua_report = "/html/body/center/a[5]/@href"
-        xpath_dua_formatb = "/html/body/center/a[4]/@href"
-        xpath_dua_container_list = "/html/body/center/b/a/@href"
+        xpath_dua_report = '//a[b/font/text()="Reporte DUA"]/@href'
+        xpath_dua_formatb = '//a[b/font/text()="Formato B"]/@href'
+        xpath_dua_container_list = '//a[font/b/text()="Relacion de Contenedores"]/@href'
 
         try:
             url_dua_report = hxs.select(xpath_dua_report).extract()[0]
@@ -150,7 +150,6 @@ class GetDataAduanet(BaseSpider):
             url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
         except IndexError:
             print response.meta['dua'].code
-            import pdb; pdb.set_trace()
 
         requests = [
             Request(url=self.domain + url_dua_report, 
@@ -265,12 +264,109 @@ class GetDataAduanet(BaseSpider):
         dua.liquidacion = Decimal(
             hxs.select('/html/body/table[1]/tr[34]/td[2]/font/text()').extract()[0].replace(',', '')
             )
+        dua.save()
 
         # create products.
-        #products_xhs = 
+        products_hxs = "/html/body/table[2]/tr[position()>=9]"
+        product = hs = hts = detalle_dua = price = None
+        line = 1
+
+        for product_rows in hxs.select(products_hxs):
+            if product_rows.select("td[1]/@colspan").extract() and \
+                product_rows.select("td[1]/@colspan").extract()[0]=="9":
+                product = hs = hts = detalle_dua = price = None
+                line = 1
+                continue
+
+            if line == 1:
+                detalle_dua = DetalleDua(dua=dua)
+                detalle_dua.guia_aerea_bl = product_rows.select(
+                    'td[3]/font/text()').extract()[0]
+                detalle_dua.fecha_embarque = datetime.strptime(
+                    product_rows.select('td[4]/font/text()').extract()[0],
+                    "%d/%m/%Y"
+                ).date()
+                detalle_dua.decl_pref = product_rows.select(
+                    'td[5]/font/text()').extract()[0]
+                detalle_dua.item = product_rows.select(
+                    'td[6]/font/text()').extract()[0]
+                detalle_dua.save()
 
 
-        dua.save()
+            elif line == 2:
+                detalle_dua.total_cant_bulto = Decimal(
+                    product_rows.select('td[2]/font/text()').extract()[0]
+                    )
+                detalle_dua.clase = product_rows.select(
+                    'td[3]/font/text()').extract()[0]
+                detalle_dua.unid_fisicas = product_rows.select(
+                    'td[4]/font/text()').extract()[0]
+                detalle_dua.peso_neto = Decimal(
+                    product_rows.select('td[5]/font/text()').extract()[0]
+                    )
+                detalle_dua.peso_bruto = Decimal(
+                    product_rows.select('td[6]/font/text()').extract()[0]
+                    )
+                detalle_dua.save()
+
+            elif line == 3:
+                detalle_dua.flete = Decimal(
+                    product_rows.select('td[2]/font/text()').extract()[0]
+                    )
+                detalle_dua.seguro = Decimal(product_rows.select(
+                    'td[3]/font/text()').extract()[0]
+                    )
+                detalle_dua.ad_valorem = Decimal(product_rows.select(
+                    'td[4]/font/text()').extract()[0]
+                    )
+                detalle_dua.igv = Decimal(
+                    product_rows.select('td[5]/font/text()').extract()[0]
+                    )
+                detalle_dua.ipm = Decimal(
+                    product_rows.select('td[6]/font/text()').extract()[0]
+                    )
+                detalle_dua.save()
+
+            elif line == 4:
+                detalle_dua.pais_origen = product_rows.select(
+                    'td[2]/font/text()').extract()[0]
+                detalle_dua.pais_adquision = product_rows.select(
+                    'td[3]/font/text()').extract()[0]
+                detalle_dua.pais_adquision = product_rows.select(
+                    'td[4]/font/text()').extract()[0]
+                detalle_dua.trato_pref = product_rows.select(
+                    'td[5]/font/text()').extract()[0]
+                detalle_dua.cod_liberacion = product_rows.select(
+                    'td[6]/font/text()').extract()[0]
+                detalle_dua.save()
+
+
+            elif line == 5:
+                detalle_dua.certi_origen = product_rows.select(
+                    'td[2]/font/text()').extract()[0]
+                detalle_dua.nabandina = product_rows.select(
+                    'td[6]/font/text()').extract()[0]
+                detalle_dua.save()
+
+            elif line == 6:
+                hts_code = product_rows.select('td[2]/font/text()').extract()[0]
+                hts_description = product_rows.select('td[3]/font/text()').extract()[0]
+                hts, created = HtsItem.django_model.objects.get_or_create(
+                    code=hts_code, defaults={'description': hts_description})
+
+            elif line == 7:
+                product, created = ProductItem.django_model.objects.get_or_create(
+                    name=product_rows.select('td[2]/font/text()').extract()[0],
+                    defaults={'hts': hts}
+                    )
+                detalle_dua.product = product
+                detalle_dua.save()
+
+            else:
+                prod_desc = product_rows.select('td[2]/font/text()').extract()[0]
+                product.description = "%s %s" % (str(product.description), prod_desc)
+                detalle_dua.save()
+            line += 1
 
     def dua_container_list(self, response):
         hxs = HtmlXPathSelector(response)

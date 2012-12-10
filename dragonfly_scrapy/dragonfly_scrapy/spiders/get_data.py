@@ -43,14 +43,14 @@ class GetDataAduanet(BaseSpider):
     def parse(self, response):
         """ Consulta de importaciones.
         """
-        #countries = CountryItem.django_model.objects.all()
-        #aduanas = AduanaItem.django_model.objects.all()
+        countries = CountryItem.django_model.objects.all()
+        aduanas = AduanaItem.django_model.objects.all()
         hxs = HtmlXPathSelector(response)
         cod_anio = hxs.select('//select[@name="CG_Ano"]/option[text()="%s"]' % self.CG_anio
                 ).select('@value').extract()[0]
 
-        countries = CountryItem.django_model.objects.filter(code='CN')
-        aduanas = AduanaItem.django_model.objects.filter(code='019')
+        #countries = CountryItem.django_model.objects.filter(code='CN')
+        #aduanas = AduanaItem.django_model.objects.filter(code='019')
 
         requests = []
 
@@ -123,6 +123,7 @@ class GetDataAduanet(BaseSpider):
             }
             dua_object, created = DuaItem.django_model.objects.get_or_create(
                 code=code%values_code, defaults={})
+            
             if created:
                 dua_object.regime = self.regime_object
                 dua_object.aduana = response.meta['aduana']
@@ -248,10 +249,14 @@ class GetDataAduanet(BaseSpider):
         dua.sobretasa_natural = Decimal(
             hxs.select('/html/body/table[1]/tr[33]/td[2]/font/text()').extract()[0].replace(',', '')
             )
-        dua.ultimo_dia_pago = datetime.strptime(
-            hxs.select('/html/body/table[1]/tr[35]/td[2]/font/text()').extract()[0],
-            "%d/%m/%Y"
-            ).date()
+        try:
+            # No siempre tiene fecha validar.
+            dua.ultimo_dia_pago = datetime.strptime(
+                hxs.select('/html/body/table[1]/tr[35]/td[2]/font/text()').extract()[0],
+                "%d/%m/%Y"
+                ).date()
+        except:
+            import pdb; pdb.set_trace()
         dua.fecha_cancelacion = datetime.strptime(
             hxs.select('/html/body/table[1]/tr[35]/td[4]/font/text()').extract()[0],
             "%d/%m/%Y"
@@ -295,35 +300,35 @@ class GetDataAduanet(BaseSpider):
 
             elif line == 2:
                 detalle_dua.total_cant_bulto = Decimal(
-                    product_rows.select('td[2]/font/text()').extract()[0]
+                    product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.clase = product_rows.select(
                     'td[3]/font/text()').extract()[0]
                 detalle_dua.unid_fisicas = product_rows.select(
                     'td[4]/font/text()').extract()[0]
                 detalle_dua.peso_neto = Decimal(
-                    product_rows.select('td[5]/font/text()').extract()[0]
+                    product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.peso_bruto = Decimal(
-                    product_rows.select('td[6]/font/text()').extract()[0]
+                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.save()
 
             elif line == 3:
                 detalle_dua.flete = Decimal(
-                    product_rows.select('td[2]/font/text()').extract()[0]
+                    product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.seguro = Decimal(product_rows.select(
-                    'td[3]/font/text()').extract()[0]
+                    'td[3]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.ad_valorem = Decimal(product_rows.select(
-                    'td[4]/font/text()').extract()[0]
+                    'td[4]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.igv = Decimal(
-                    product_rows.select('td[5]/font/text()').extract()[0]
+                    product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.ipm = Decimal(
-                    product_rows.select('td[6]/font/text()').extract()[0]
+                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
                 detalle_dua.save()
 
@@ -364,7 +369,11 @@ class GetDataAduanet(BaseSpider):
 
             else:
                 prod_desc = product_rows.select('td[2]/font/text()').extract()[0]
-                product.description = "%s %s" % (str(product.description), prod_desc)
+                try:
+                    product.description = "%s %s" % (product.description, prod_desc)
+                except:
+                    print "description"
+                    import pdb; pdb.set_trace()
                 detalle_dua.save()
             line += 1
 
@@ -373,9 +382,12 @@ class GetDataAduanet(BaseSpider):
         xpath_container = '/html/body/table[3]/tr[@class="bg"]'
         dua = response.meta['dua']
         for container_hxs in hxs.select(xpath_container):
-            container, created = ContainerItem.django_model.objects.get_or_create(
-                code=container_hxs.select('td[2]/text()').extract()[0]
-                )
+            try:
+                container, created = ContainerItem.django_model.objects.get_or_create(
+                    code=container_hxs.select('td[2]/text()').extract()[0]
+                    )
+            except:
+                import pdb; pdb.set_trace()
             if not dua.containers.filter(code=container.code).count():
                 dua.containers.add(container)
                 dua.save()
@@ -384,9 +396,15 @@ class GetDataAduanet(BaseSpider):
     def dua_formatb(self, response):
         xpath_declaracion_valor = "/html/body/table/tr[2]/td/font/a/@href"
         hxs = HtmlXPathSelector(response)
-        url_declaracion_valor = hxs.select(xpath_declaracion_valor).extract()[0]
-        return Request(url=self.domain + url_declaracion_valor, callback=self.dua_formatob_declaracion)
+        try:
+            url_declaracion_valor = hxs.select(xpath_declaracion_valor).extract()[0]
+            return Request(url=self.domain + url_declaracion_valor, callback=self.dua_formatob_declaracion)
+        except IndexError:
+            # No tiene formatoB
+            pass
+            import pdb; pdb.set_trace()
 
     def dua_formatob_declaracion(self, response):
         # Extraer declarante, crear declarante y asociarlo a la dua
+        # http://www.aduanet.gob.pe/servlet/SgCDUI2?option=una&n=10&codaduana=235&anoprese=2012&numecorre=050429
         pass

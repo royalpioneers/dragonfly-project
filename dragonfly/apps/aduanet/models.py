@@ -34,7 +34,7 @@ class Agent(models.Model):
         return "%s - %s" % (self.code, self.name)
 
 class Container(models.Model):
-    code = models.CharField(max_length=12)
+    code = models.CharField(max_length=20)
 
     def __unicode__(self):
         return self.code
@@ -52,7 +52,7 @@ class Port(models.Model):
 class Importer(models.Model):
     code = models.CharField(max_length=20)
     name = models.CharField(max_length=200)
-    address =  models.CharField(max_length=120)
+    address =  models.CharField(max_length=300)
 
     def __unicode__(self):
         return "%s - %s" % (self.code, self.name)
@@ -75,7 +75,7 @@ class Transport (models.Model):
 
 ###### En esta clase falta como se va a guardar la fecha
 class Dua (models.Model):
-    code =  models.CharField(max_length=15)
+    code =  models.CharField(max_length=21)
     regime = models.ForeignKey('Regime', blank=True, null=True)
     aduana =  models.ForeignKey('Aduana', blank=True, null=True)
     agent =  models.ForeignKey('Agent', blank=True, null=True)
@@ -137,7 +137,7 @@ class DetalleDua(models.Model):
     total_cant_bulto=models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     flete = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     pais_origen = models.CharField(max_length=50, blank=True, null=True)
-    guia_aerea_bl=models.CharField(max_length=15, blank=True, null=True)
+    guia_aerea_bl=models.CharField(max_length=20, blank=True, null=True)
     clase = models.CharField(max_length=60, blank=True, null=True)
     seguro = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     pais_adquision = models.CharField(max_length=50, blank=True, null=True)

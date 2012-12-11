@@ -151,6 +151,7 @@ class GetDataAduanet(BaseSpider):
             url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
         except IndexError:
             print response.meta['dua'].code
+            import pdb; pdb.set_trace()
 
         requests = [
             Request(url=self.domain + url_dua_report, 
@@ -168,8 +169,11 @@ class GetDataAduanet(BaseSpider):
         dua = response.meta['dua']
 
         # Creamos el Importador
-        importer_ruc = hxs.select('/html/body/table[1]/tr[6]/td[2]/font/text()'
-            ).extract()[0].split('-').pop()
+        try:
+            importer_ruc = hxs.select('/html/body/table[1]/tr[6]/td[2]/font/text()'
+                ).extract()[0].split('-').pop()
+        except:
+            import pdb; pdb.set_trace()
         importer_name = hxs.select('/html/body/table[1]/tr[6]/td[3]/font/text()').extract()[0]
         importer_address = hxs.select('/html/body/table[1]/tr[6]/td[5]/font/text()').extract()[0]
         importer, created = ImporterItem.django_model.objects.get_or_create(code=importer_ruc,
@@ -251,10 +255,12 @@ class GetDataAduanet(BaseSpider):
             )
         try:
             # No siempre tiene fecha validar.
-            dua.ultimo_dia_pago = datetime.strptime(
-                hxs.select('/html/body/table[1]/tr[35]/td[2]/font/text()').extract()[0],
-                "%d/%m/%Y"
-                ).date()
+            ultimo_dia_pago = hxs.select('/html/body/table[1]/tr[35]/td[2]/font/text()').extract()[0]
+            if not ultimo_dia_pago == u'\xa0':
+                dua.ultimo_dia_pago = datetime.strptime(
+                    ultimo_dia_pago,
+                    "%d/%m/%Y"
+                    ).date()
         except:
             import pdb; pdb.set_trace()
         dua.fecha_cancelacion = datetime.strptime(
@@ -299,20 +305,26 @@ class GetDataAduanet(BaseSpider):
 
 
             elif line == 2:
-                detalle_dua.total_cant_bulto = Decimal(
-                    product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
-                    )
-                detalle_dua.clase = product_rows.select(
-                    'td[3]/font/text()').extract()[0]
-                detalle_dua.unid_fisicas = product_rows.select(
-                    'td[4]/font/text()').extract()[0]
-                detalle_dua.peso_neto = Decimal(
-                    product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
-                    )
-                detalle_dua.peso_bruto = Decimal(
-                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
-                    )
-                detalle_dua.save()
+                try:
+                    detalle_dua.total_cant_bulto = Decimal(
+                        product_rows.select('td[2]/font/text()').extract()[0].replace(',', '')
+                        )
+                    detalle_dua.clase = product_rows.select(
+                        'td[3]/font/text()').extract()[0]
+                    detalle_dua.unid_fisicas = product_rows.select(
+                        'td[4]/font/text()').extract()[0]
+                    detalle_dua.peso_neto = Decimal(
+                        product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
+                        )
+                    detalle_dua.peso_bruto = Decimal(
+                        product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
+                        )
+                except:
+                    import pdb; set_trace()
+                try:
+                    detalle_dua.save()
+                except:
+                    import pdb; set_trace()
 
             elif line == 3:
                 detalle_dua.flete = Decimal(
@@ -341,8 +353,12 @@ class GetDataAduanet(BaseSpider):
                     'td[4]/font/text()').extract()[0]
                 detalle_dua.trato_pref = product_rows.select(
                     'td[5]/font/text()').extract()[0]
-                detalle_dua.cod_liberacion = product_rows.select(
-                    'td[6]/font/text()').extract()[0]
+                try:
+                    detalle_dua.cod_liberacion = product_rows.select(
+                        'td[6]/font/text()').extract()[0]
+                except:
+                    print "cod_liberacion"
+                    import pdb; pdb.set_trace()
                 detalle_dua.save()
 
 
@@ -400,11 +416,10 @@ class GetDataAduanet(BaseSpider):
             url_declaracion_valor = hxs.select(xpath_declaracion_valor).extract()[0]
             return Request(url=self.domain + url_declaracion_valor, callback=self.dua_formatob_declaracion)
         except IndexError:
-            # No tiene formatoB
-            pass
-            import pdb; pdb.set_trace()
+            if hxs.select('//b[text()="DECLARACION DE IMPORTACION NO TIENE FORMATO B"]').extract():
+                # http://www.aduanet.gob.pe/servlet/SgCDUI2?option=una&n=10&codaduana=235&anoprese=2012&numecorre=050429
+                pass
 
     def dua_formatob_declaracion(self, response):
         # Extraer declarante, crear declarante y asociarlo a la dua
-        # http://www.aduanet.gob.pe/servlet/SgCDUI2?option=una&n=10&codaduana=235&anoprese=2012&numecorre=050429
         pass

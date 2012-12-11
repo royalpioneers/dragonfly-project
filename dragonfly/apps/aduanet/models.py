@@ -134,7 +134,7 @@ class Product(models.Model):
 class DetalleDua(models.Model):
     dua = models.ForeignKey('Dua')
     product = models.ForeignKey('Product', blank=True, null=True)
-    total_cant_bulto=models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    total_cant_bulto=models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     flete = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     pais_origen = models.CharField(max_length=50, blank=True, null=True)
     guia_aerea_bl=models.CharField(max_length=20, blank=True, null=True)

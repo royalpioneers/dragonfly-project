@@ -301,10 +301,12 @@ class GetDataAduanet(BaseSpider):
                     'td[5]/font/text()').extract()[0]
                 detalle_dua.item = product_rows.select(
                     'td[6]/font/text()').extract()[0]
-                detalle_dua.fech_vencimiento = datetime.strptime(
-                    product_rows.select('td[7]/font/text()').extract()[0],
-                    "%d/%m/%Y"
-                ).date()
+                fech_vencimiento = product_rows.select('td[7]/font/text()').extract()[0]
+                if not fech_vencimiento == u'\xa0':
+                    detalle_dua.fech_vencimiento = datetime.strptime(
+                        fech_vencimiento,
+                        "%d/%m/%Y"
+                    ).date()
                 detalle_dua.certi_origen = product_rows.select(
                     'td[8]/font/text()').extract()[0]
                 detalle_dua.estado = product_rows.select(

@@ -131,7 +131,7 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     description =  models.CharField(max_length=120, default="", blank=True, null=True)
     price =  models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    unid_comercial = models.DecimalField(max_digits=20, decimal_places=20, blank=True, null=True)
+    unid_comercial = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     tipo_uc = models.CharField(max_length=15, blank=True, null=True)
 
 class DetalleDua(models.Model):
@@ -140,7 +140,7 @@ class DetalleDua(models.Model):
     total_cant_bulto=models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     flete = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
     pais_origen = models.CharField(max_length=50, blank=True, null=True)
-    guia_aerea_bl=models.CharField(max_length=20, blank=True, null=True)
+    guia_aerea_bl=models.CharField(max_length=200, blank=True, null=True)
     clase = models.CharField(max_length=60, blank=True, null=True)
     seguro = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     pais_adquision = models.CharField(max_length=50, blank=True, null=True)
@@ -162,7 +162,7 @@ class DetalleDua(models.Model):
     isc =  models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     certi_origen = models.CharField(max_length=20, blank=True, null=True)
     fob = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    estado = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    estado = models.CharField(max_length=15, blank=True, null=True)
     
     
 

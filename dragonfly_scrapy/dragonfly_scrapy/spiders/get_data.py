@@ -289,6 +289,7 @@ class GetDataAduanet(BaseSpider):
                 line = 1
                 continue
 
+            to = datetime.now()
             if line == 1:
                 detalle_dua = DetalleDua(dua=dua)
                 detalle_dua.guia_aerea_bl = product_rows.select(
@@ -311,7 +312,11 @@ class GetDataAduanet(BaseSpider):
                     'td[8]/font/text()').extract()[0]
                 detalle_dua.estado = product_rows.select(
                     'td[9]/font/text()').extract()[0]
-                detalle_dua.save()
+                try:
+                    detalle_dua.save()
+                except:
+                    print "########linea 1"
+                    import pdb; pdb.set_trace()
 
 
             elif line == 2:
@@ -403,14 +408,18 @@ class GetDataAduanet(BaseSpider):
                 temp_tipo_uc = product_rows.select('td[7]/font/text()').extract()[0]
 
             elif line == 7:
-                product, created = ProductItem.django_model.objects.get_or_create(
-                    name=product_rows.select('td[2]/font/text()').extract()[0],
-                    defaults={
-                        'hts': hts , 
-                        'unid_comercial': temp_unid_comercial, 
-                        'tipo_uc': temp_tipo_uc
-                        }
-                    )
+                try:
+                    product, created = ProductItem.django_model.objects.get_or_create(
+                        name=product_rows.select('td[2]/font/text()').extract()[0],
+                        defaults={
+                            'hts': hts , 
+                            'unid_comercial': temp_unid_comercial, 
+                            'tipo_uc': temp_tipo_uc
+                            }
+                        )
+                except:
+                    # temp_tipo_uc
+                    import pdb; pdb.set_trace()
                 detalle_dua.product = product
                 detalle_dua.save()
 
@@ -423,6 +432,9 @@ class GetDataAduanet(BaseSpider):
                     import pdb; pdb.set_trace()
                 detalle_dua.save()
             line += 1
+
+            delta_t = datetime.now() - to
+            print "###", line-1, delta_t
 
     def dua_container_list(self, response):
         hxs = HtmlXPathSelector(response)

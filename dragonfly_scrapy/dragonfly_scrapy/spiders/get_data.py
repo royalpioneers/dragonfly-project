@@ -279,13 +279,13 @@ class GetDataAduanet(BaseSpider):
 
         # create products.
         products_hxs = "/html/body/table[2]/tr[position()>=9]"
-        product = hs = hts = detalle_dua = price = None
+        product = hs = hts = detalle_dua = price = unid_comercial = tipo_uc = None
         line = 1
 
         for product_rows in hxs.select(products_hxs):
             if product_rows.select("td[1]/@colspan").extract() and \
                 product_rows.select("td[1]/@colspan").extract()[0]=="9":
-                product = hs = hts = detalle_dua = price = None
+                product = hs = hts = detalle_dua = price = unid_comercial = tipo_uc = None
                 line = 1
                 continue
 
@@ -301,6 +301,14 @@ class GetDataAduanet(BaseSpider):
                     'td[5]/font/text()').extract()[0]
                 detalle_dua.item = product_rows.select(
                     'td[6]/font/text()').extract()[0]
+                detalle_dua.fech_vencimiento = datetime.strptime(
+                    product_rows.select('td[7]/font/text()').extract()[0],
+                    "%d/%m/%Y"
+                ).date()
+                detalle_dua.certi_origen = product_rows.select(
+                    'td[8]/font/text()').extract()[0]
+                detalle_dua.estado = product_rows.select(
+                    'td[9]/font/text()').extract()[0]
                 detalle_dua.save()
 
 
@@ -319,12 +327,20 @@ class GetDataAduanet(BaseSpider):
                     detalle_dua.peso_bruto = Decimal(
                         product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                         )
+                    detalle_dua.moneda_transacc = Decimal(
+                        product_rows.select('td[7]/font/text()').extract()[0].replace(',', '')
+                        )
+                    detalle_dua.fob = Decimal(
+                        product_rows.select('td[8]/font/text()').extract()[0].replace(',', '')
+                        )                    
                 except:
-                    import pdb; set_trace()
+                    print "error en linea 2"
+                    import pdb; pdb.set_trace()
                 try:
                     detalle_dua.save()
                 except:
-                    import pdb; set_trace()
+                    print "error en el save"
+                    import pdb; pdb.set_trace()
 
             elif line == 3:
                 detalle_dua.flete = Decimal(
@@ -342,6 +358,10 @@ class GetDataAduanet(BaseSpider):
                 detalle_dua.ipm = Decimal(
                     product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
+                detalle_dua.isc = Decimal(
+                    product_rows.select('td[7]/font/text()').extract()[0].replace(',', '')
+                    )
+
                 detalle_dua.save()
 
             elif line == 4:
@@ -349,9 +369,9 @@ class GetDataAduanet(BaseSpider):
                     'td[2]/font/text()').extract()[0]
                 detalle_dua.pais_adquision = product_rows.select(
                     'td[3]/font/text()').extract()[0]
-                detalle_dua.pais_adquision = product_rows.select(
+                detalle_dua.trato_pref_int = product_rows.select(
                     'td[4]/font/text()').extract()[0]
-                detalle_dua.trato_pref = product_rows.select(
+                detalle_dua.trato_pref_nac = product_rows.select(
                     'td[5]/font/text()').extract()[0]
                 try:
                     detalle_dua.cod_liberacion = product_rows.select(
@@ -363,22 +383,31 @@ class GetDataAduanet(BaseSpider):
 
 
             elif line == 5:
-                detalle_dua.certi_origen = product_rows.select(
-                    'td[2]/font/text()').extract()[0]
-                detalle_dua.nabandina = product_rows.select(
-                    'td[6]/font/text()').extract()[0]
-                detalle_dua.save()
+                pass
 
             elif line == 6:
                 hts_code = product_rows.select('td[2]/font/text()').extract()[0]
                 hts_description = product_rows.select('td[3]/font/text()').extract()[0]
+                hts_nabandina = product_rows.select('td[4]/font/text()').extract()[0]
                 hts, created = HtsItem.django_model.objects.get_or_create(
-                    code=hts_code, defaults={'description': hts_description})
+                    code=hts_code, 
+                    defaults={'description': hts_description, 'nabandina': hts_nabandina
+                    })
+
+                #Creando Variables temporales
+                temp_unid_comercial = Decimal(
+                    product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
+                    )
+                temp_tipo_uc = product_rows.select('td[7]/font/text()').extract()[0]
 
             elif line == 7:
                 product, created = ProductItem.django_model.objects.get_or_create(
                     name=product_rows.select('td[2]/font/text()').extract()[0],
-                    defaults={'hts': hts}
+                    defaults={
+                        'hts': hts , 
+                        'unid_comercial': temp_unid_comercial, 
+                        'tipo_uc': temp_tipo_uc
+                        }
                     )
                 detalle_dua.product = product
                 detalle_dua.save()

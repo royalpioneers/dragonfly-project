@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, DivisionByZero
 from urllib import urlencode
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
@@ -75,6 +75,7 @@ class GetDataAduanet(BaseSpider):
         return requests
 
     def agent_list(self, response):
+        #import pdb; pdb.set_trace()
         hxs = HtmlXPathSelector(response)
         js_params = hxs.select('//tr[@class="bg"]/td[1]/a/@href').extract()
         requests = []
@@ -279,17 +280,17 @@ class GetDataAduanet(BaseSpider):
 
         # create products.
         products_hxs = "/html/body/table[2]/tr[position()>=9]"
-        product = hs = hts = detalle_dua = price = unid_comercial = tipo_uc = None
+        product = hs = hts = detalle_dua = None
         line = 1
 
         for product_rows in hxs.select(products_hxs):
             if product_rows.select("td[1]/@colspan").extract() and \
                 product_rows.select("td[1]/@colspan").extract()[0]=="9":
-                product = hs = hts = detalle_dua = price = unid_comercial = tipo_uc = None
+                product = hs = hts = detalle_dua = None
                 line = 1
                 continue
 
-            to = datetime.now()
+            #to = datetime.now()
             if line == 1:
                 detalle_dua = DetalleDua(dua=dua)
                 detalle_dua.guia_aerea_bl = product_rows.select(
@@ -326,8 +327,12 @@ class GetDataAduanet(BaseSpider):
                         )
                     detalle_dua.clase = product_rows.select(
                         'td[3]/font/text()').extract()[0]
-                    detalle_dua.unid_fisicas = product_rows.select(
-                        'td[4]/font/text()').extract()[0]
+                    unid_fisicas = product_rows.select(
+                        'td[4]/font/text()').extract()[0].split(u'\xa0')
+                    detalle_dua.unid_fisicas = Decimal(
+                        unid_fisicas[0].replace(',', '')
+                        )
+                    detalle_dua.tipo_unid_fisicas = unid_fisicas[1]
                     detalle_dua.peso_neto = Decimal(
                         product_rows.select('td[5]/font/text()').extract()[0].replace(',', '')
                         )
@@ -402,21 +407,64 @@ class GetDataAduanet(BaseSpider):
                     })
 
                 #Creando Variables temporales
-                temp_unid_comercial = Decimal(
+                detalle_dua.unid_comercial = Decimal(
                     product_rows.select('td[6]/font/text()').extract()[0].replace(',', '')
                     )
-                temp_tipo_uc = product_rows.select('td[7]/font/text()').extract()[0]
+                detalle_dua.tipo_uc = product_rows.select('td[7]/font/text()').extract()[0]
+                detalle_dua.save()
 
             elif line == 7:
                 try:
                     product, created = ProductItem.django_model.objects.get_or_create(
                         name=product_rows.select('td[2]/font/text()').extract()[0],
-                        defaults={
-                            'hts': hts , 
-                            'unid_comercial': temp_unid_comercial, 
-                            'tipo_uc': temp_tipo_uc
-                            }
+                        defaults={'hts': hts}
                         )
+                    try:
+                        product.precio_cif = (detalle_dua.flete + detalle_dua.seguro)/detalle_dua.unid_comercial
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_cif = Decimal(0)
+
+                    try:
+                        product.precio_fob = detalle_dua.fob/detalle_dua.unid_comercial
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_fob = Decimal(0)
+
+                    try:    
+                        product.precio_total = (detalle_dua.flete + detalle_dua.seguro + detalle_dua.ad_valorem \
+                            + detalle_dua.igv + detalle_dua.ipm + detalle_dua.isc + detalle_dua.fob) / detalle_dua.unid_comercial
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_total = Decimal(0)
+
+                    try:    
+                        product.precio_regulado = (detalle_dua.flete + detalle_dua.seguro + detalle_dua.ad_valorem \
+                            + detalle_dua.igv + detalle_dua.ipm + detalle_dua.isc + detalle_dua.fob * Decimal(1.25)) / detalle_dua.unid_comercial
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_regulado = Decimal(0)
+
+
+                    try:
+                        product.precio_cif_uf = (detalle_dua.flete + detalle_dua.seguro)/detalle_dua.unid_fisicas
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_cif_uf = Decimal(0)
+
+                    try:    
+                        product.precio_fob_uf = detalle_dua.fob/detalle_dua.unid_fisicas
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_fob_uf = Decimal(0)
+
+                    try:
+                        product.precio_total_uf = (detalle_dua.flete + detalle_dua.seguro + detalle_dua.ad_valorem \
+                            + detalle_dua.igv + detalle_dua.ipm + detalle_dua.isc + detalle_dua.fob) / detalle_dua.unid_fisicas
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_total_uf = Decimal(0)
+
+                    try:
+                        product.precio_regulado_uf = (detalle_dua.flete + detalle_dua.seguro + detalle_dua.ad_valorem \
+                            + detalle_dua.igv + detalle_dua.ipm + detalle_dua.isc + detalle_dua.fob * Decimal(1.25)) / detalle_dua.unid_fisicas
+                    except (InvalidOperation, DivisionByZero):
+                        product.precio_regulado_uf = Decimal(0)
+
+                    product.save() 
                 except:
                     # temp_tipo_uc
                     import pdb; pdb.set_trace()
@@ -433,8 +481,8 @@ class GetDataAduanet(BaseSpider):
                 detalle_dua.save()
             line += 1
 
-            delta_t = datetime.now() - to
-            print "###", line-1, delta_t
+            #delta_t = datetime.now() - to
+            #print "###", line-1, delta_t
 
     def dua_container_list(self, response):
         hxs = HtmlXPathSelector(response)

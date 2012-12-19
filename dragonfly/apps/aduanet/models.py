@@ -179,7 +179,7 @@ class Hts(models.Model):
     code = models.CharField(max_length=15)
     description = models.CharField(max_length=200)
     hs = models.ForeignKey('Hs', blank=True, null=True)
-    nabandina =  models.CharField(max_length=5, blank=True, null=True)
+    nabandina =  models.CharField(max_length=15, blank=True, null=True)
 
     class Meta:
         verbose_name = u"HTS"

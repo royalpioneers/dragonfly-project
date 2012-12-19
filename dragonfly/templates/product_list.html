@@ -1,0 +1,40 @@
+{% load i18n %}
+{% load common_tags %}
+
+{% block content %}
+<section class="container">
+
+    <div class="page-header">
+        <h2>{% trans 'Products' %}</h2>
+    </div>
+
+	<div>
+		<form method="get" action="" class="form-horizontal well well-small search-form">
+	        <div class="row-fluid">
+	            {{ search_form.as_p }}
+	            <div class="form-actions">
+	            	<input type="submit" class="btn" value="{% trans 'Search' %}">
+	            </div>          
+	        </div>         
+	    </form>
+	</div>
+
+    <table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>{% trans 'Product' %}</th>
+            <th>{% trans 'Category' %}</th>
+            <th>{% trans 'Modified' %}</th>
+            <th>{% trans 'Options' %}</th>
+        </tr>
+    </thead>
+    {% for obj in page_obj.object_list %}
+    <tr>
+        <td>{{ obj.name }}</td>
+    </tr>
+    {% endfor %}
+    </table>
+    {% pagination_ctl page_obj url=page_url %}
+
+</section>
+{% endblock %}

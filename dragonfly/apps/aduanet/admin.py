@@ -24,7 +24,7 @@ class HtsListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(hts__code=self.value())
+            return queryset.filter(hts__code__in=self.value().split(','))
 
 
 class ProductAdmin(admin.ModelAdmin):

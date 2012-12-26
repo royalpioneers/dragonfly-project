@@ -261,3 +261,21 @@ class SearchProduct(SearchFormMixin, ListView):
     #    else:
     #        qs = qs.filter(producttranslate_set__language=lang_active)
     #    return qs
+
+
+class ProductListView(ListView):
+    model = Product
+    template_name = "product_list.html"
+    paginate_by = 20
+
+
+    def get_queryset(self):
+        qs = super(ProductListView, self).get_queryset()
+
+        # search query
+        query = self.request.GET.get('q', None)
+        if query:
+            qs = qs.filter(name__icontains=query)
+
+
+        return qs

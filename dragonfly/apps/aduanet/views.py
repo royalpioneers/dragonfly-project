@@ -1,5 +1,8 @@
+from operator import and_, or_
+
 from django.views.generic import ListView
 from django import forms
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from aduanet.util import dict_strip_unicode_keys
@@ -275,7 +278,8 @@ class ProductListView(ListView):
         # search query
         query = self.request.GET.get('q', None)
         if query:
-            qs = qs.filter(name__icontains=query)
+            q = reduce(and_, (Q(name__icontains=q) for q in query.split()))
+            qs = qs.filter(q)
 
 
         return qs

@@ -281,5 +281,10 @@ class ProductListView(ListView):
             q = reduce(and_, (Q(name__icontains=q) for q in query.split()))
             qs = qs.filter(q)
 
+        # hts filter
+        if self.request.GET.get('hts', None):
+            qs = qs.filter(hts__code__in=self.request.GET.get('hts').split())
+
+
 
         return qs

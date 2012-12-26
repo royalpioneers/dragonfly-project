@@ -188,11 +188,25 @@ class Hts(models.Model):
     def __unicode__(self):
         return u"%s" % (self.code, )
 
+class CountryProduct(models.Model):
+    code = models.CharField(max_length=5)
+    name = models.CharField(max_length=50)
+
+    class Meta:
+        verbose_name = u"País"
+        verbose_name_plural = u"Países"
+
+    def __unicode__(self):
+        return "%s - %s" % (self.code, self.name)
+
+
 class Product(models.Model):
     code = models.CharField(max_length=15, blank=True, null=True)
     hts = models.ForeignKey('Hts')
     name = models.CharField(max_length=100)
     description =  models.CharField(max_length=120, default="", blank=True, null=True)
+    country_origin = models.ForeignKey('CountryProduct', blank=True, null=True)
+    country_destination = models.ForeignKey('CountryProduct', blank=True, null=True)
     # Precios calculados
     precio_cif = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     precio_fob = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)

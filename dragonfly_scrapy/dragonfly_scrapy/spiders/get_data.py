@@ -388,7 +388,7 @@ class GetDataAduanet(BaseSpider):
                         code = adquisicion.split('-')[0],
                         defaults = {'name': adquisicion.split('-')[1]}
                     )
-                detalle_dua.pais_adquision = pais_adquisicion
+                detalle_dua.pais_adquisicion = pais_adquisicion
                 detalle_dua.trato_pref_int = product_rows.select(
                     'td[4]/font/text()').extract()[0]
                 detalle_dua.trato_pref_nac = product_rows.select(

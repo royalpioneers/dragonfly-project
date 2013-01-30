@@ -188,6 +188,18 @@ class Hts(models.Model):
     def __unicode__(self):
         return u"%s" % (self.code, )
 
+class CountryProduct(models.Model):
+    code = models.CharField(max_length=5)
+    name = models.CharField(max_length=50)
+
+    class Meta:
+        verbose_name = u"País"
+        verbose_name_plural = u"Países"
+
+    def __unicode__(self):
+        return "%s - %s" % (self.code, self.name)
+
+
 class Product(models.Model):
     code = models.CharField(max_length=15, blank=True, null=True)
     hts = models.ForeignKey('Hts')
@@ -215,30 +227,32 @@ class Product(models.Model):
 class DetalleDua(models.Model):
     dua = models.ForeignKey('Dua')
     product = models.ForeignKey('Product', blank=True, null=True)
-    total_cant_bulto=models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    flete = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
-    pais_origen = models.CharField(max_length=50, blank=True, null=True)
+    total_cant_bulto=models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    flete = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    pais_origen = models.ForeignKey('CountryProduct', blank=True, null=True,
+                                        related_name='pais_origen_set')
     guia_aerea_bl=models.CharField(max_length=200, blank=True, null=True)
     clase = models.CharField(max_length=60, blank=True, null=True)
-    seguro = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-    pais_adquision = models.CharField(max_length=50, blank=True, null=True)
+    seguro = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    pais_adquisicion = models.ForeignKey('CountryProduct', blank=True, null=True,
+                                        related_name='pais_adquisicion_set')
     description_partida_cancelaria = models.CharField(max_length=100, blank=True, null=True)
     fecha_embarque=models.DateField(blank=True, null=True)
     unid_fisicas = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     tipo_unid_fisicas = models.CharField(max_length=10, blank=True, null=True)
-    ad_valorem = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    igv = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    ad_valorem = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    igv = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     trato_pref_int = models.CharField(max_length=10, blank=True, null=True)
     trato_pref_nac = models.CharField(max_length=10, blank=True, null=True)
     decl_pref = models.CharField(max_length=50, blank=True, null=True)
     item =  models.CharField(max_length=50, blank=True, null=True)    
-    peso_bruto = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    peso_neto = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    ipm = models.DecimalField(max_digits=10,decimal_places=2, blank=True, null=True)
+    peso_bruto = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    peso_neto = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
+    ipm = models.DecimalField(max_digits=20,decimal_places=2, blank=True, null=True)
     cod_liberacion = models.CharField(max_length=200, blank=True, null=True)
     fech_vencimiento = models.DateField(blank=True, null=True)
     moneda_transacc =  models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    isc =  models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    isc =  models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True)
     certi_origen = models.CharField(max_length=20, blank=True, null=True)
     fob = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     estado = models.CharField(max_length=15, blank=True, null=True)

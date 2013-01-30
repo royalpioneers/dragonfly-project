@@ -10,7 +10,7 @@ from scrapy.http import Request, FormRequest
 from dragonfly_scrapy.items import CountryItem, RegimeItem, AduanaItem, \
     AgentItem, ContainerItem, SupplierItem, PortItem, ImporterItem, \
     DeclaranteItem, StatusItem, TransportItem, DuaItem, Hs, Item, HtsItem, \
-    ProductItem, DetalleDua
+    ProductItem, DetalleDua, CountryProductItem
 
 class GetDataAduanet(BaseSpider):
     name = "abracadabra"
@@ -377,10 +377,18 @@ class GetDataAduanet(BaseSpider):
                 detalle_dua.save()
 
             elif line == 4:
-                detalle_dua.pais_origen = product_rows.select(
-                    'td[2]/font/text()').extract()[0]
-                detalle_dua.pais_adquision = product_rows.select(
-                    'td[3]/font/text()').extract()[0]
+                origen = product_rows.select('td[2]/font/text()').extract()[0]
+                pais_origen, created = CountryProductItem.django_model.objects.get_or_create(
+                        code = origen.split('-')[0],
+                        defaults = {'name': origen.split('-')[1]}
+                    )
+                detalle_dua.pais_origen = pais_origen
+                adquisicion = product_rows.select('td[3]/font/text()').extract()[0]
+                pais_adquisicion, created = CountryProductItem.django_model.objects.get_or_create(
+                        code = adquisicion.split('-')[0],
+                        defaults = {'name': adquisicion.split('-')[1]}
+                    )
+                detalle_dua.pais_adquisicion = pais_adquisicion
                 detalle_dua.trato_pref_int = product_rows.select(
                     'td[4]/font/text()').extract()[0]
                 detalle_dua.trato_pref_nac = product_rows.select(

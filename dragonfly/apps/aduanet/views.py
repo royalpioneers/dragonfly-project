@@ -1,5 +1,9 @@
+from operator import and_, or_
+
 from django.views.generic import ListView
+from django.views.generic.edit import FormMixin
 from django import forms
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from aduanet.util import dict_strip_unicode_keys
@@ -261,3 +265,84 @@ class SearchProduct(SearchFormMixin, ListView):
     #    else:
     #        qs = qs.filter(producttranslate_set__language=lang_active)
     #    return qs
+
+class ProductSearchForm(forms.Form):
+    q = forms.CharField(max_length=200, required=False)
+    hts = forms.MultipleChoiceField(widget=forms.CheckboxSelectMultiple, 
+            label="HTS:", required=False,
+            choices=[(x.id, x.description) for x in Hts.objects.all()]
+            )
+    # orig = 
+    # adqs = 
+
+
+class ProductListView(ListView):
+    model = Product
+    template_name = "product_list.html"
+    paginate_by = 20
+    form_class = ProductSearchForm
+    filtered = False
+
+    def get_queryset(self):
+        """ Return queryset. """
+        qs = super(ProductListView, self).get_queryset()
+
+        # search query
+        query = self.request.GET.get('q', None)
+        if query:
+            self.filtered = True
+            q = reduce(and_, (Q(name__icontains=q) for q in query.split()))
+            qs = qs.filter(q)
+
+        # hts filter
+        if self.request.GET.get('hts', None):
+            self.filtered = True
+            qs = qs.filter(hts__id__in=self.request.GET.getlist('hts'))
+
+        # origin filter
+        if self.request.GET.get('orig', None):
+            self.filtered = True
+            qs = qs.exclude(
+                    ~Q(detalledua__pais_origen__id__in=self.request.GET.get('orig').split())
+                )
+
+        # adquisicion filter
+        if self.request.GET.get('adqs', None):
+            self.filtered = True
+            qs = qs.exclude(
+                    ~Q(detalledua__pais_adquisicion__id__in=self.request.GET.get('adqs').split())
+                )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super(ProductListView, self).get_context_data(**kwargs)
+        if self.filtered:
+            form = ProductSearchForm(self.request.GET)
+            form.fields['hts'].choices = \
+                [(x.id, x.description) for x in Hts.objects.exclude(~Q(product__in=self.object_list))]
+        else:
+            form = ProductSearchForm(self.request.GET)
+            
+        context.update({
+            'form': form
+        })
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        allow_empty = self.get_allow_empty()
+
+        if not allow_empty:
+            # When pagination is enabled and object_list is a queryset,
+            # it's better to do a cheap query than to load the unpaginated
+            # queryset in memory.
+            if (self.get_paginate_by(self.object_list) is not None
+                and hasattr(self.object_list, 'exists')):
+                is_empty = not self.object_list.exists()
+            else:
+                is_empty = len(self.object_list) == 0
+            if is_empty:
+                raise Http404(_("Empty list and '%(class_name)s.allow_empty' is False.")
+                        % {'class_name': self.__class__.__name__})
+        context = self.get_context_data(object_list=self.object_list)
+        return self.render_to_response(context)

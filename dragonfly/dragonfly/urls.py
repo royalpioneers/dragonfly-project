@@ -1,8 +1,8 @@
 from django.conf.urls import patterns, include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf import settings
-
-from aduanet.views import SearchProduct, ProductListView
+from aduanet.views import SearchProduct, \
+    ProductListView, HomeView
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -10,7 +10,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'dragonfly.views.home', name='home'),
+    url(r'^$', HomeView.as_view() , name='home'),
     # url(r'^dragonfly/', include('dragonfly.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
-
-from operator import and_, or_
-
-from django.views.generic import ListView
-from django.views.generic.edit import FormMixin
+from operator import and_
+from django.core.urlresolvers import reverse
+from django.views.generic import ListView, RedirectView
 from django import forms
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
-
 from aduanet.util import dict_strip_unicode_keys
 from aduanet.models import Product, Hts, CountryProduct
+
+class HomeView(RedirectView):
+    def get_redirect_url(self, **kwargs):
+        return reverse('admin:index')
+
 
 class SearchMixin(object):
     """
@@ -267,6 +269,7 @@ class SearchProduct(SearchFormMixin, ListView):
     #    else:
     #        qs = qs.filter(producttranslate_set__language=lang_active)
     #    return qs
+
 
 class ProductSearchForm(forms.Form):
     q = forms.CharField(max_length=200, required=False)

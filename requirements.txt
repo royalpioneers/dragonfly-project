@@ -6,6 +6,7 @@ Twisted==12.2.0
 argparse==1.2.1
 django-debug-toolbar==0.9.4
 django-grappelli==2.4.3
+gunicorn==0.17.2
 lxml==3.0.1
 pyOpenSSL==0.13
 w3lib==1.2

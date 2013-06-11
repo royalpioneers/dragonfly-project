@@ -151,7 +151,7 @@ class GetDataAduanet(BaseSpider):
             url_dua_container_list = hxs.select(xpath_dua_container_list).extract()[0]
         except IndexError:
             print response.meta['dua'].code
-            import pdb; pdb.set_trace()
+            pass
 
         requests = [
             Request(url=self.domain + url_dua_report, 
@@ -173,7 +173,7 @@ class GetDataAduanet(BaseSpider):
             importer_ruc = hxs.select('/html/body/table[1]/tr[6]/td[2]/font/text()'
                 ).extract()[0].split('-').pop()
         except:
-            import pdb; pdb.set_trace()
+            pass
         importer_name = hxs.select('/html/body/table[1]/tr[6]/td[3]/font/text()').extract()[0]
         importer_address = hxs.select('/html/body/table[1]/tr[6]/td[5]/font/text()').extract()[0]
         importer, created = ImporterItem.django_model.objects.get_or_create(code=importer_ruc,
@@ -262,7 +262,7 @@ class GetDataAduanet(BaseSpider):
                     "%d/%m/%Y"
                     ).date()
         except:
-            import pdb; pdb.set_trace()
+            pass
         dua.fecha_cancelacion = datetime.strptime(
             hxs.select('/html/body/table[1]/tr[35]/td[4]/font/text()').extract()[0],
             "%d/%m/%Y"
@@ -316,7 +316,7 @@ class GetDataAduanet(BaseSpider):
                     detalle_dua.save()
                 except:
                     print "########linea 1"
-                    import pdb; pdb.set_trace()
+                    pass
 
 
             elif line == 2:
@@ -346,12 +346,12 @@ class GetDataAduanet(BaseSpider):
                         )                    
                 except:
                     print "error en linea 2"
-                    import pdb; pdb.set_trace()
+                    pass
                 try:
                     detalle_dua.save()
                 except:
                     print "error en el save"
-                    import pdb; pdb.set_trace()
+                    pass
 
             elif line == 3:
                 detalle_dua.flete = Decimal(
@@ -397,7 +397,7 @@ class GetDataAduanet(BaseSpider):
                         'td[6]/font/text()').extract()[0]
                 except:
                     print "cod_liberacion"
-                    import pdb; pdb.set_trace()
+                    pass
                 detalle_dua.save()
 
 
@@ -474,7 +474,7 @@ class GetDataAduanet(BaseSpider):
                     product.save() 
                 except:
                     # temp_tipo_uc
-                    import pdb; pdb.set_trace()
+                    pass
                 detalle_dua.product = product
                 detalle_dua.save()
 
@@ -484,7 +484,7 @@ class GetDataAduanet(BaseSpider):
                     product.description = "%s %s" % (product.description, prod_desc)
                 except:
                     print "description"
-                    import pdb; pdb.set_trace()
+                    pass
                 detalle_dua.save()
             line += 1
 
@@ -501,7 +501,7 @@ class GetDataAduanet(BaseSpider):
                     code=container_hxs.select('td[2]/text()').extract()[0]
                     )
             except:
-                import pdb; pdb.set_trace()
+                pass
             if not dua.containers.filter(code=container.code).count():
                 dua.containers.add(container)
                 dua.save()
